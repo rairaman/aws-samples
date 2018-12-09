@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template to deploy the AWS glue resources required for Firehose record conversion
+
+Parameters:
+  FirehoseInputDbName:
+    Type: String
+    Default: fh-input-db
+
+  FirehoseInputTableName:
+    Type: String
+    Default: fh-input-table
+
+  FirehoseDeliveryArn:
+    Type: String
+
+Resources:
+
+  FirehoseInputDb:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Ref FirehoseInputDbName
+        Description: Database to hold tables that have the schema of data that is input into firehose
+
+  FirehoseInputTable:
+    DependsOn: FirehoseInputDb
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Ref FirehoseInputDbName
+      TableInput:
+        Name: !Ref FirehoseInputTableName
+        Description: Describes the columns in the input data going to Firehose
+        TableType: EXTERNAL_TABLE
+        Parameters: { "classification": "json" }
+        StorageDescriptor:
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          Columns:
+            - Name: first_Name
+              Type: string
+            - Name: last_Name
+              Type: string
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          SerdeInfo:
+            Parameters:
+              paths: "First_Name,Last_Name"
+            SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+
+  GlueInteractionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: firehose.amazonaws.com
+      RoleName: !Sub ${AWS::StackName}-Glue-Interaction-Role
+
+  GlueInteractionPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn: 
+      - GlueInteractionRole
+      - FirehoseInputDb
+      - FirehoseInputTable
+    Properties:
+      PolicyName: !Sub ${AWS::StackName}-Glue-Interaction-Policy
+      PolicyDocument:
+        Statement:
+        - Action: glue:*
+          Effect: Allow
+          Resource: 
+            - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
+            - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${FirehoseInputDb}"
+            - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${FirehoseInputTable}"  
+            - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/${FirehoseInputDb}/${FirehoseInputTable}"
+        - Action: iam:PassRole
+          Effect: Allow
+          Resource: !GetAtt GlueInteractionRole.Arn
+      Roles: 
+        - !Ref GlueInteractionRole
+
+Outputs:
+  GlueDatabaseName:
+    Description: Name of the Glue database containing schemas for firehose
+    Value: !Ref FirehoseInputDb
+
+  GlueTableName:
+    Description: Name of the Glue table containing the schema of the Json to be converted in firehose
+    Value: !Ref FirehoseInputTable
+
+  GlueIntractionRoleArn:
+    Description: ARN of the glue interaction role
+    Value: !GetAtt GlueInteractionRole.Arn

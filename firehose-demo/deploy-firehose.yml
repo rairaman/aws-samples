@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Template to deploy the resources for a demo of Kinesis Firehose
+
+Parameters:
+
+  FirehoseDeliveryStreamName:
+    Type: String
+    Description: The friendly name to be given to the firehose delivery stream
+
+Resources:
+
+  FirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "FirehoseLogs-${AWS::StackName}"
+
+  FirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref FirehoseLogGroup
+      LogStreamName: FireshosetoS3Logs
+
+  LogDestinationS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-firehose-logs-demo"
+
+  FirehoseDemo:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    DependsOn: FirehoseToS3Role
+    Properties:
+      DeliveryStreamName: !Ref FirehoseDeliveryStreamName
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !GetAtt LogDestinationS3Bucket.Arn
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 1
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: !Ref FirehoseLogGroup
+          LogStreamName: !Ref FirehoseLogStream
+        CompressionFormat: UNCOMPRESSED
+        Prefix: 'Demo'
+        RoleARN: !GetAtt FirehoseToS3Role.Arn
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Type: Lambda
+              Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue: !GetAtt FirehoseProcessorLambda.Arn
+                - ParameterName: RoleArn
+                  ParameterValue: !GetAtt FirehoseToS3Role.Arn
+
+  FirehoseToS3Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: firehose.amazonaws.com
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  FirehoseToS3Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-FH-S3-Policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Action: s3:*
+            Resource:
+              - !Sub "arn:aws:s3:::${AWS::StackName}-firehose-logs-demo/"
+              - !Sub "arn:aws:s3:::${AWS::StackName}-firehose-logs-demo/*"
+          - Effect: Allow
+            Action: logs:*
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*:*"
+          - Effect: Allow
+            Action:
+              - lambda:GetFunctionConfiguration 
+              - lambda:InvokeFunction
+            Resource: '*'
+      Roles: 
+        - !Ref FirehoseToS3Role
+
+  FirehoseProcessorLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: index.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./lambdas/firehose-processor/
+      Description: A sample lambda function for firehose to process records
+      MemorySize: 128
+      Timeout: 180
+
+Outputs:
+  FirehoseDeliveryStreamName:
+    Description: The name of the Firehose delivery stream created in this template
+    Value: !Ref FirehoseDemo
+
+  FirehoseDeliveryArn:
+    Description: The ARN of the Firehose delivery stream created in this template
+    Value: !GetAtt FirehoseDemo.Arn
