@@ -23,7 +23,7 @@ update-firehose:
 
 # Usage:
 # make glue-resources DEPLOY_BUCKET=<S3 bucket where lambda code is deployed by CloudFomration>
-#						CUST_STACK_NAME=<Name of Cloud Formation stack to deploy in>
+#						GLUE_STACK_NAME=<Name of Cloud Formation stack to deploy in>
 #						FRIENDLY_FH_NAME=<Friendly name to give the firehose delivery stream>
 #						GLUE_DB_NAME=<Name of the glue database where the target input schema will reside>
 #						GLUE_TABLE_NAME=<Name of the Glue table defining the input schema to convert>

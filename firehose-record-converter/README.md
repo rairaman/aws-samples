@@ -1,5 +1,5 @@
 # Firehose Record Conversion
-Uses a custom resource to make an API call to enable the Firehose Record Conversion (JSON to Parquet/ORC )
+Uses a custom resource to make an API call to enable the Firehose Record Conversion (JSON to Parquet/ORC).
 This directory contains an example custom resource built using code from [AWS Labs](https://github.com/awslabs/aws-cloudformation-templates/tree/master/community/custom_resources/python_custom_resource_helper)
 
 ## Deploy
@@ -15,8 +15,8 @@ Use the provided Makefile to deploy:
 2. A lambda backed custom resource that makes updates the S3 destination of an existing Firehose delivery stream and enables Data Conversion. The custom resource needs to be provided with the Glue Database Name, Glue Table Name containing the input JSON schema, and an IAM role that enables it to access those Glue resources
 
 ```Make
-make glue-resources DEPLOY_BUCKET=<S3 bucket where lambda code is deployed by CloudFomration>
-					CUST_STACK_NAME=<Name of Cloud Formation stack to deploy in>
+make glue-resources DEPLOY_BUCKET=<S3 bucket where lambda code is deployed by CloudFormation>
+					GLUE_STACK_NAME=<Name of CloudFormation stack to deploy in>
 					FRIENDLY_FH_NAME=<Friendly name to give the firehose delivery stream>
 					GLUE_DB_NAME=<Name of the glue database where the target input schema will reside>
 					GLUE_TABLE_NAME=<Name of the Glue table defining the input schema to convert>
