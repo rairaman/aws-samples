@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    A simple lambda that uses the Python panda library deployed as a layer
+
+Globals:
+  Function:
+    Timeout: 300
+
+Resources:
+
+    PandaLayerDemo:
+      Type: AWS::Serverless::Function 
+      Properties:
+        CodeUri: panda-lambda-demo/
+        Handler: app.lambda_handler
+        Runtime: python3.6
+
+Outputs:
+
+  PandaLayerDemo:
+    Description: "Panda Layer Demo Lambda Function ARN"
+    Value: !GetAtt PandaLayerDemo.Arn
+
+  PandaLayerDemoIamRole:
+    Description: "Implicit IAM Role created for Panda Layer Demo function"
+    Value: !GetAtt PandaLayerDemoRole.Arn

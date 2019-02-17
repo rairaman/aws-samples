@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    Copies the built panda library 
+
+Resources:
+
+    PandaLibraryLayer:
+      Type: AWS::Serverless::LayerVersion
+      Properties:
+        LayerName: python-panda-library
+        Description: Panda data library that can be used by any python 3.6 lambdas
+        ContentUri: dependencies/panda-bin
+        CompatibleRuntimes:
+          - python3.6
+        LicenseInfo: 'MIT'
+        RetentionPolicy: Retain
