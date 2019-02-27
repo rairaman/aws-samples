@@ -11,6 +11,10 @@ Parameters:
   PandaLayerArn:
     Type: String
 
+  SciPyLayerArn:
+    Type: String
+    Default: arn:aws:lambda:ap-southeast-2:817496625479:layer:AWSLambda-Python37-SciPy1x:2
+
 Resources:
 
     PandaLayerDemo:
@@ -19,6 +23,7 @@ Resources:
         CodeUri: panda-lambda-demo/
         Handler: app.lambda_handler
         Layers:
+          - !Ref SciPyLayerArn
           - !Ref PandaLayerArn
         Runtime: python3.7
 

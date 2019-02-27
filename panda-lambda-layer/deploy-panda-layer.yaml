@@ -8,7 +8,7 @@ Resources:
   PandaLibraryLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: python-panda-library
+      LayerName: AWSLambda-Python3.7-Pandas0.23.4
       Description: Panda data library that can be used by any python 3.7 lambdas
       ContentUri: panda-layer
       CompatibleRuntimes:
