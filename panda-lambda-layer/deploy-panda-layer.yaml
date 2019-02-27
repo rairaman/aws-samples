@@ -1,17 +1,22 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-    Copies the built panda library 
+    Copies the built pytz and panda libraries as a lambda layer
 
 Resources:
 
-    PandaLibraryLayer:
-      Type: AWS::Serverless::LayerVersion
-      Properties:
-        LayerName: python-panda-library
-        Description: Panda data library that can be used by any python 3.6 lambdas
-        ContentUri: dependencies/panda-bin
-        CompatibleRuntimes:
-          - python3.6
-        LicenseInfo: 'MIT'
-        RetentionPolicy: Retain
+  PandaLibraryLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: python-panda-library
+      Description: Panda data library that can be used by any python 3.7 lambdas
+      ContentUri: panda-layer
+      CompatibleRuntimes:
+        - python3.7
+      LicenseInfo: 'MIT'
+      RetentionPolicy: Retain
+
+Outputs:
+  PandaLibraryLayerArn:
+    Description: The ARN of the Lambda layer containing the panda library
+    Value: !Ref PandaLibraryLayer

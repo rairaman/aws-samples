@@ -7,6 +7,10 @@ Globals:
   Function:
     Timeout: 300
 
+Parameters:
+  PandaLayerArn:
+    Type: String
+
 Resources:
 
     PandaLayerDemo:
@@ -14,7 +18,9 @@ Resources:
       Properties:
         CodeUri: panda-lambda-demo/
         Handler: app.lambda_handler
-        Runtime: python3.6
+        Layers:
+          - !Ref PandaLayerArn
+        Runtime: python3.7
 
 Outputs:
 
