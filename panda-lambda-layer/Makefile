@@ -11,7 +11,7 @@ compile-panda: clean
 	docker run --rm -u 1000:1000 -v "$(PWD)":/tmp -w /tmp lambci/lambda:build-python3.7 pip install -r requirements.txt --no-deps -t $(PKG_DIR)
 
 #Usage: make deploy-panda-layer DEPLOY_BUCKET=<Bucket where Cloud formation can store package items>
-deploy-panda-layer:
+deploy-panda-layer: compile-panda
 	aws cloudformation package --template-file deploy-panda-layer.yaml \
 		--s3-bucket $(DEPLOY_BUCKET) \
 		--output-template-file packaged-template.yml 
