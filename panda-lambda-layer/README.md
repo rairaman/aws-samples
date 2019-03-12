@@ -9,5 +9,11 @@ make deploy-panda-layer DEPLOY_BUCKET=<s3_bucket_name_for_packages>
 make deploy-lambda-demo DEPLOY_BUCKET=<s3_bucket_name_for_packages> PD_LY_ARN=<arn_of_panda_layer>
 ```
 
+## Local Testing
+The lambda can be testing locally as long as the dependent layers have been deployed. The layers will be downloaded and cached by the SAM CLI when the lambda is invoked locally.
+```
+make run-local PD_LY_ARN=<ARN of the layer containing the python library required>
+```
+
 ## Dependencies
 - An S3 bucket used by CloudFormation to package the lambda function as well as the lambda layer
