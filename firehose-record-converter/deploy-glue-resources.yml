@@ -10,9 +10,6 @@ Parameters:
     Type: String
     Default: fh-input-table
 
-  FirehoseDeliveryArn:
-    Type: String
-
 Resources:
 
   FirehoseInputDb:

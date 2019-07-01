@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Template to deploy the resources for a demo of Custom Resources
+
+Parameters:
+  FirehoseDeliveryStreamName:
+    Description: The name of the Firehose delivery stream to update
+    Type: String
+  GlueTableName:
+    Description: The name of the Glue catalog containing the input schema to be transformed
+    Type: String
+  GlueDatabaseName:
+    Description: The name of the Glue database containig the required table catalogs
+    Type: String
+  GlueInteractionRoleArn:
+    Description: The ARN of a role that allows the Glue DB and table to be read
+    Type: String
+
+Resources:
+  
+  FirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "FirehoseLogs-${AWS::StackName}"
+
+  FirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref FirehoseLogGroup
+      LogStreamName: FireshosetoS3Logs
+
+  FirehoseDestS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-firehose-dest"
+
+  FirehoseDataConvertor:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    DependsOn: FirehoseToS3Role
+    Properties:
+      DeliveryStreamName: !Ref FirehoseDeliveryStreamName
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !GetAtt FirehoseDestS3Bucket.Arn
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 64
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: !Ref FirehoseLogGroup
+          LogStreamName: !Ref FirehoseLogStream
+        CompressionFormat: UNCOMPRESSED
+        DataFormatConversionConfiguration: 
+          Enabled: true
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe:
+                CaseInsensitive: true
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe:
+                Compression: SNAPPY
+                EnableDictionaryCompression: false
+          SchemaConfiguration:
+            CatalogId: !Sub "${AWS::AccountId}"
+            DatabaseName: !Ref GlueDatabaseName
+            Region: !Sub "${AWS::Region}"
+            RoleARN: !Ref GlueInteractionRoleArn
+            TableName: !Ref GlueTableName
+            VersionId: LATEST
+        RoleARN: !GetAtt FirehoseToS3Role.Arn
+
+  FirehoseToS3Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: firehose.amazonaws.com
+            Action: sts:AssumeRole
+
+  FirehoseToS3Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-FH-S3-Policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Action: 
+              - s3:PutObject
+            Resource:
+              - !Sub "arn:aws:s3:::${AWS::StackName}-firehose-dest"
+              - !Sub "arn:aws:s3:::${AWS::StackName}-firehose-dest/*"
+          - Effect: Allow
+            Action: logs:*
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*:*"
+      Roles: 
+        - !Ref FirehoseToS3Role
