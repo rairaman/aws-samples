@@ -12,7 +12,7 @@ glue-resources:
 		--capabilities CAPABILITY_NAMED_IAM
 
 # Usage:
-# make deploy-firehose STACK_NAME=<Name of Cloud Formation stack to deploy in>				
+# make deploy-firehose FH_STACK_NAME=<Name of Cloud Formation stack to deploy in>				
 #						FH_DEL_STR_NAME=<Name of the firehose delivery stream>
 #						GLUE_TABLE_NAME=<Name of the Glue table defining the input schema to convert>
 #						GLUE_DB_NAME=<Name of the glue database where the target input schema resides>
@@ -20,7 +20,7 @@ glue-resources:
 deploy-firehose:
 	aws cloudformation deploy \
 		--template-file deploy-firehose.yml \
-		--stack-name $(STACK_NAME) \
+		--stack-name $(FH_STACK_NAME) \
 		--parameter-overrides FirehoseDeliveryStreamName=$(FH_DEL_STR_NAME) \
 								GlueTableName=$(GLUE_TABLE_NAME) \
 								GlueDatabaseName=$(GLUE_DB_NAME) \

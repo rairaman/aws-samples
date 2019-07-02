@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Transform: 'AWS::Serverless-2016-10-31'
-Description: Template to deploy the resources for a demo of Custom Resources
+Description: Template to deploy the resources for a firehose delivery stream consuming Json and transforming to parquet
 
 Parameters:
   FirehoseDeliveryStreamName:
@@ -67,7 +66,24 @@ Resources:
             RoleARN: !Ref GlueInteractionRoleArn
             TableName: !Ref GlueTableName
             VersionId: LATEST
+        Prefix: sensorCounts/dt=!{timestamp:yyyy-MM-dd-HH}/
+        ErrorOutputPrefix: sensorCountsErrors/!{firehose:error-output-type}/dt=!{timestamp:yyyy-MM-dd-HH}/
         RoleARN: !GetAtt FirehoseToS3Role.Arn
+        S3BackupConfiguration: 
+          BucketARN: !GetAtt FirehoseDestS3Bucket.Arn
+          BufferingHints: 
+            IntervalInSeconds: 60
+            SizeInMBs: 1
+          CloudWatchLoggingOptions: 
+            Enabled: true
+            LogGroupName: !Ref FirehoseLogGroup
+            LogStreamName: !Ref FirehoseLogStream
+          CompressionFormat: UNCOMPRESSED
+          Prefix: sensorCountsJson/dt=!{timestamp:yyyy-MM-dd-HH}/
+          ErrorOutputPrefix: sensorCountsJsonErrors/!{firehose:error-output-type}/dt=!{timestamp:yyyy-MM-dd-HH}/
+          RoleARN: !GetAtt FirehoseToS3Role.Arn
+        S3BackupMode: Enabled
+
 
   FirehoseToS3Role:
     Type: AWS::IAM::Role
@@ -98,3 +114,8 @@ Resources:
             Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*:*"
       Roles: 
         - !Ref FirehoseToS3Role
+
+Outputs:
+  DestinationBucketName:
+    Description: The name of the S3 bucket where firehose will deliver data to
+    Value: !Ref FirehoseDestS3Bucket
