@@ -26,3 +26,25 @@ deploy-firehose:
 								GlueDatabaseName=$(GLUE_DB_NAME) \
 								GlueInteractionRoleArn=$(GLUE_INT_ROLE) \
 		--capabilities CAPABILITY_NAMED_IAM
+
+# Usage:
+# make deploy-data-sourcer DEPLOY_BUCKET=<S3 bucket where lambda code is deployed by CloudFormation>
+# 							DS_STACK_NAME=<Name of CloudFormation stack to deploy in>
+deploy-data-sourcer:
+	aws cloudformation package --template-file deploy-data-sourcer.yml \
+		--s3-bucket $(DEPLOY_BUCKET) \
+		--output-template-file packaged-template.yml 
+
+	aws cloudformation deploy \
+		--template-file packaged-template.yml \
+		--stack-name $(DS_STACK_NAME) \
+		--capabilities CAPABILITY_NAMED_IAM
+
+#-e ./local-resources/test-event.json
+# Usage:
+# make run-local-data-sourcer FIREHOSE_NAME=<Name of the firehose stream the lambda function will write to>
+run-local-data-sourcer:
+	cp ./local-resources/env-vars-template.json ./local-resources/env-vars.json
+	sed -i 's/FIREHOSE_ARN_REPLACE/$(FIREHOSE_NAME)/' ./local-resources/env-vars.json
+	sam local invoke --no-event --env-vars ./local-resources/env-vars.json -t deploy-data-sourcer.yml
+	rm ./local-resources/env-vars.json

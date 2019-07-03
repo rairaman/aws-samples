@@ -34,14 +34,24 @@ Resources:
         StorageDescriptor:
           OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
           Columns:
-            - Name: first_Name
+            - Name: date
               Type: string
-            - Name: last_Name
+            - Name: time
+              Type: string
+            - Name: sensor_id
+              Type: int
+            - Name: direction_1
+              Type: int
+            - Name: direction_2
+              Type: int
+            - Name: total_of_directions
+              Type: int
+            - Name: date_time
               Type: string
           InputFormat: org.apache.hadoop.mapred.TextInputFormat
           SerdeInfo:
             Parameters:
-              paths: "First_Name,Last_Name"
+              paths: "date,time,sensor_id,direction_1,direction_2,total_of_directions,date_time"
             SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
 
   GlueInteractionRole:

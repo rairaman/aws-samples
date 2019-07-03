@@ -1,6 +1,6 @@
 
 # Usage:
-# make kinesis-firehose DEPLOY_BUCKET=<S3 bucket where lambda code is deployed by CloudFomration>
+# make kinesis-firehose DEPLOY_BUCKET=<S3 bucket where lambda code is deployed by CloudFormation>
 #						FH_STACK_NAME=<Name of Cloud Formation stack to deploy in>
 #						FRIENDLY_FH_NAME=<Friendly name to give the firehose delivery stream>
 kinesis-firehose:

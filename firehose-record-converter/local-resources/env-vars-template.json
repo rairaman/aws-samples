@@ -1,0 +1,5 @@
+{
+    "DataSourcingLambda": {
+        "FirehoseName": "FIREHOSE_ARN_REPLACE"
+    }
+}

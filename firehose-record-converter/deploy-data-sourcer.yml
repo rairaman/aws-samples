@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Template to deploy the resources for pulling data from a public API
+
+Parameters:
+  FirehoseName:
+    Type: String
+    Description: The name of the Firehose delivery stream for the lambda to write to
+
+Resources:
+
+  DataSourcingLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: index.lambda_handler
+      Runtime: python3.7
+      CodeUri: ./lambdas/data-sourcer/
+      Description: A simple lambda to query the Melbourne Open Data pedestrian counts and push the data to firehose
+      Environment:
+        Variables:
+          FirehoseName: !Ref FirehoseName
+      MemorySize: 128
+      Timeout: 30
+      RoleArn: !GetAtt DataSourcingLambdaRole.Arn
+      Events:
+        GetPedestrianCountsScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(15 minutes)
+
+  DataSourcingLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  DataSourcingLambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-FH-S3-Policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Action: firehose:PutRecordBatch
+            Resource:
+              - !Sub "arn:aws:firehose:${AWS::Region}:${AWS::AccountId}:deliverystream/${FirehoseName}"
+          - Effect: Allow
+            Action: logs:*
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*:*"
+      Roles: 
+        - !Ref DataSourcingLambdaRole
+
+Outputs:
+  DataSourcingLambdaArn:
+    Description: The ARN of the lambda that pulls data from the pedestrian api and pushes into firehose
+    Value: !GetAtt DataSourcingLambda.Arn
+
+  
