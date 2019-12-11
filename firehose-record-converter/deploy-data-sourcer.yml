@@ -21,7 +21,7 @@ Resources:
           FirehoseName: !Ref FirehoseName
       MemorySize: 128
       Timeout: 30
-      RoleArn: !GetAtt DataSourcingLambdaRole.Arn
+      Role: !GetAtt DataSourcingLambdaRole.Arn
       Events:
         GetPedestrianCountsScheduledEvent:
           Type: Schedule
