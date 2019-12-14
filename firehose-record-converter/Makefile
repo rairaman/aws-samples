@@ -30,6 +30,7 @@ deploy-firehose:
 # Usage:
 # make deploy-data-sourcer DEPLOY_BUCKET=<S3 bucket where lambda code is deployed by CloudFormation>
 # 							DS_STACK_NAME=<Name of CloudFormation stack to deploy in>
+#							FIREHOSE_NAME=<Name of the firehose stream the lambda function will write to>
 deploy-data-sourcer:
 	aws cloudformation package --template-file deploy-data-sourcer.yml \
 		--s3-bucket $(DEPLOY_BUCKET) \
@@ -38,6 +39,7 @@ deploy-data-sourcer:
 	aws cloudformation deploy \
 		--template-file packaged-template.yml \
 		--stack-name $(DS_STACK_NAME) \
+		--parameter-overrides FirehoseName=$(FIREHOSE_NAME) \
 		--capabilities CAPABILITY_NAMED_IAM
 
 #-e ./local-resources/test-event.json
