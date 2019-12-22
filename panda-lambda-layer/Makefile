@@ -17,7 +17,7 @@ run-local:
 	sam local invoke --no-event -t deploy-lambda.yaml --parameter-overrides \
 	ParameterKey=PandaLayerArn,ParameterValue=$(PD_LY_ARN)
 
-#Usage: make deploy-panda-layer DEPLOY_BUCKET=<Bucket where Cloud formation can store package items>
+#Usage: make deploy-panda-layer DEPLOY_BUCKET=<S3 bucket where the CloudFormation package command can upload its artefacts to>
 deploy-panda-layer: compile-panda
 	aws cloudformation package --template-file deploy-panda-layer.yaml \
 		--s3-bucket $(DEPLOY_BUCKET) \
@@ -29,7 +29,7 @@ deploy-panda-layer: compile-panda
 		--no-fail-on-empty-changeset \
 		--capabilities CAPABILITY_NAMED_IAM
 
-#Usage: make deploy-lambda-demo DEPLOY_BUCKET=<Bucket where Cloud formation can store package items>
+#Usage: make deploy-lambda-demo DEPLOY_BUCKET=<S3 bucket where the CloudFormation package command can upload its artefacts to>
 #					PD_LY_ARN=<ARN of the layer containing the python library required>			
 deploy-lambda-demo:
 	aws cloudformation package --template-file deploy-lambda.yaml \

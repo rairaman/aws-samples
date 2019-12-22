@@ -28,7 +28,7 @@ deploy-firehose:
 		--capabilities CAPABILITY_NAMED_IAM
 
 # Usage:
-# make deploy-data-sourcer DEPLOY_BUCKET=<S3 bucket where lambda code is deployed by CloudFormation>
+# make deploy-data-sourcer DEPLOY_BUCKET=<S3 bucket where the CloudFormation package command can upload its artefacts to>
 # 							DS_STACK_NAME=<Name of CloudFormation stack to deploy in>
 #							FIREHOSE_NAME=<Name of the firehose stream the lambda function will write to>
 deploy-data-sourcer:

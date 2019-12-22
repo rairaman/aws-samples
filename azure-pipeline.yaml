@@ -1,0 +1,7 @@
+trigger:
+  - '*'
+
+steps:
+  - task: Bash@3
+    targetType: inline
+    script: 'echo Hello world'
