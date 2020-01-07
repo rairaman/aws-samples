@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Api Gateway with an OpenAPI spec, and request payload validation enabled
+
+Resources:
+
+  PetsApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: PetsApi
+      StageName: dev
+      DefinitionBody:
+        'Fn::Transform':
+          Name: 'AWS::Include'
+          Parameters:
+            Location: ./swagger.yaml
+
+  GetPetsFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: index.lambda_handler
+      Runtime: python3.7
+      CodeUri: ./src/getPets
+      Description: A sample lambda function
+      MemorySize: 128
+      Timeout: 180
+      Events:
+        AddPet:
+          Type: Api
+          Properties:
+            Path: /pets
+            Method: GET
+            RestApiId: !Ref PetsApi
+
+  AddPetFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: index.lambda_handler
+      Runtime: python3.7
+      CodeUri: ./src/addPet
+      Description: A sample lambda function two
+      MemorySize: 128
+      Timeout: 180
+      Events:
+        AddPet:
+          Type: Api
+          Properties:
+            Path: /addPet
+            Method: POST
+            RestApiId: !Ref PetsApi
