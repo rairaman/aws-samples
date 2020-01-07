@@ -49,3 +49,13 @@ Resources:
             Path: /addPet
             Method: POST
             RestApiId: !Ref PetsApi
+
+Outputs:
+
+  GetPetsApiEndpoint:
+    Description: The full url of the get pets API Endpoint
+    Value: !Sub "https://${PetsApi}.execute-api.${AWS::Region}.amazonaws.com/dev/pets"
+
+  AddPetApiEndpoint:
+    Description: The full url of the add pet API Endpoint
+    Value: !Sub "https://${PetsApi}.execute-api.${AWS::Region}.amazonaws.com/dev/addPet"

@@ -32,7 +32,7 @@ paths:
           default:
             statusCode: 200
         uri:
-          # Unfortunately, shorthand YAML notation cannot be used in the swagger file for intrinsic functions, so Fn::Sub it is
+          # Unfortunately, shorthand YAML notation cannot be used in the swagger file for intrinsic functions, so Fn::Sub (and not !Sub) it is
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPetsFunction.Arn}/invocations"
         passthroughBehavior: when_no_match
         httpMethod: POST  # This is the method used by API gateway to integrate with lambda
