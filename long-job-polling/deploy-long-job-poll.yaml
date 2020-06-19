@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  A step function that runs a lambda and waits until the lambda signals completion
+
+Resources:
+
+  LongJobChecker:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      CodeUri: ./src
+      Description: Checks for completion of a long running job
+      MemorySize: 128
+      Timeout: 180
+
+  LongJobCheckerOrchestrator:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Definition:
+        StartAt: CheckLongJobState
+        States:
+          CheckLongJobState:
+            Type: Task
+            Resource: !GetAtt LongJobChecker.Arn
+            ResultPath: $.wait_status
+            Next: IsJobFinished
+          IsJobFinished:
+            Type: Choice
+            Choices:
+              - Variable: $.wait_status
+                StringEquals: "KEEP_WAITING"
+                Next: WaitStep
+              - Variable: $.wait_status
+                StringEquals: "JOB_COMPLETED"
+                Next: JobCompleted
+              - Variable: $.wait_status
+                StringEquals: "JOB_WAIT_TIMEOUT"
+                Next: JobWaitTimedOut
+          WaitStep:
+            Type: Wait
+            Seconds: 10
+            Next: CheckLongJobState
+          JobCompleted:
+            Type: Succeed
+          JobWaitTimedOut:
+            Type: Fail
+      Role: !GetAtt LongJobCheckerOrchestratorRole.Arn
+
+  LongJobCheckerOrchestratorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-orchestrator-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${AWS::StackName}-call-job-checker-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: Allow
+                Action:
+                  - lambda:GetFunctionConfiguration 
+                  - lambda:InvokeFunction
+                Resource: !GetAtt LongJobChecker.Arn
