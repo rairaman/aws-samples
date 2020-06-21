@@ -1,19 +1,32 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  A step function that runs a lambda and waits until the lambda signals completion
+  Periodically polls for the completion of a long job until the long job completes.
+
+Parameters:
+  JobWaitTimeout:
+    Type: Number
+    Description: The total time (in seconds) to keep polling for the job/process completion. Default of 30 mins.
+    Default: 1800
+  WaitTime:
+    Type: Number
+    Description: The number (in seconds) to wait between each check completion check. Defaults of 5 mins.
+    Default: 300
 
 Resources:
 
   LongJobChecker:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Handler: index.lambda_handler
-      Runtime: python3.8
       CodeUri: ./src
       Description: Checks for completion of a long running job
+      Environment:
+        Variables:
+          JOB_WAIT_TIMEOUT: !Ref JobWaitTimeout
+      Handler: index.lambda_handler
       MemorySize: 128
-      Timeout: 180
+      Runtime: python3.8
+      Timeout: 30
 
   LongJobCheckerOrchestrator:
     Type: AWS::Serverless::StateMachine
@@ -24,23 +37,23 @@ Resources:
           CheckLongJobState:
             Type: Task
             Resource: !GetAtt LongJobChecker.Arn
-            ResultPath: $.wait_status
+            ResultPath: $.job_check_status
             Next: IsJobFinished
           IsJobFinished:
             Type: Choice
             Choices:
-              - Variable: $.wait_status
+              - Variable: $.job_check_status.wait_status
                 StringEquals: "KEEP_WAITING"
                 Next: WaitStep
-              - Variable: $.wait_status
+              - Variable: $.job_check_status.wait_status
                 StringEquals: "JOB_COMPLETED"
                 Next: JobCompleted
-              - Variable: $.wait_status
+              - Variable: $.job_check_status.wait_status
                 StringEquals: "JOB_WAIT_TIMEOUT"
                 Next: JobWaitTimedOut
           WaitStep:
             Type: Wait
-            Seconds: 10
+            Seconds: !Ref WaitTime
             Next: CheckLongJobState
           JobCompleted:
             Type: Succeed
