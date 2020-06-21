@@ -10,7 +10,7 @@ make deploy-lambda-demo DEPLOY_BUCKET=<s3_bucket_name_for_packages> PD_LY_ARN=<a
 ```
 
 ## Local Testing
-The lambda can be testing locally as long as the dependent layers have been deployed. The layers will be downloaded and cached by the SAM CLI when the lambda is invoked locally.
+The lambda can be tested locally as long as the dependent layers have been deployed. The layers will be downloaded and cached by the SAM CLI when the lambda is invoked locally.
 ```
 make run-local PD_LY_ARN=<ARN of the layer containing the python library required>
 ```
