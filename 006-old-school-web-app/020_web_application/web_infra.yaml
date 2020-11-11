@@ -1,0 +1,180 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates EC2s and a load balancer to serve a webapp
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where webapp will run
+  
+  GoldenAmiId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: The AMI Id of the simple golden ami
+    Default: /ami/golden/base/latest
+
+  PrivateSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of private subnets where web app lives
+
+  PublicSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of public subnets where the load balancers live
+
+  WebAppBucket:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: The bucket where Web app code is stored
+    Default: /base-infra/buckets/webappcode
+
+Resources:
+
+  SecurityGroupWebAppLoadbalancer: 
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: "ALB security group"
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: HTTP
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: tcp
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: ALL
+          FromPort: 0
+          ToPort: 65355
+          IpProtocol: tcp
+      VpcId: !Ref VpcId
+
+  SecurityGroupWebapp: 
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: 'Websapp security group'
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: ALL
+          FromPort: 0
+          ToPort: 65355
+          IpProtocol: '-1'
+      VpcId: !Ref VpcId
+
+  SecurityGroupIngressWebApp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: 'HTTP'
+      GroupId: !Ref SecurityGroupWebapp
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref SecurityGroupWebapp
+      FromPort: 80
+      ToPort: 80
+
+  LaunchConfigWebapp:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: false
+      ImageId: !Ref GoldenAmiId
+      InstanceMonitoring: false
+      InstanceType: t3.micro
+      IamInstanceProfile: !GetAtt WebAppServerInstanceProfile.Arn
+      LaunchConfigurationName: LaunchConfigWebApp
+      SecurityGroups:
+        - !Ref SecurityGroupWebapp
+      UserData: 
+        Fn::Base64: 
+          !Sub | 
+          #!/bin/bash
+          # Update packages and install uwsgi
+          yum -y update
+          yum -y groupinstall "Development Tools"
+          yum -y install python-pip
+          pip install uwsgi
+          # Get code from s3
+          mkdir -p /var/www/webapp
+          aws s3 sync s3://${WebAppBucket}/web-app/ /var/www/webapp
+          # Install dependencies and start uwsgi
+          pip install -r /var/www/webapp/requirements.txt
+          uwsgi --socket 0.0.0.0:80 --protocol=http --chdir /var/www/webapp --wsgi-file wsgi.py --callable app
+
+
+  AutoScalingGroupWebApp:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: AutoScalingGroupWebApp
+      AvailabilityZones:
+        - 'ap-southeast-2a'
+        - 'ap-southeast-2b'
+      Cooldown: '300'
+      DesiredCapacity: '2'
+      MaxSize: '2'
+      MinSize: '2'
+      HealthCheckGracePeriod: 300
+      HealthCheckType: ELB
+      LaunchConfigurationName: !Ref LaunchConfigWebapp
+      TargetGroupARNs:
+        - !Ref TargetGroupWebApp
+      VPCZoneIdentifier: !Ref PrivateSubnets
+  
+  LoadBalancerWebapp:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref SecurityGroupWebAppLoadbalancer
+        - !Ref SecurityGroupWebapp
+      Subnets: !Ref PublicSubnets
+
+  TargetGroupWebApp:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 90
+      HealthCheckPath: /
+      HealthCheckPort: '80'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      Name: 'TargetGroupWebApp'
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: !Ref VpcId
+
+  LoadBalancerListenerWebApp:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      DefaultActions:
+        - Type: 'forward'
+          TargetGroupArn: !Ref TargetGroupWebApp
+      LoadBalancerArn: !Ref LoadBalancerWebapp
+      Port: 80
+      Protocol: 'HTTP'
+
+  WebAppServerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-WebAppRole'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub '${AWS::StackName}-WebAppPolicy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: 'AllowS3Access'
+                Effect: Allow
+                Action: 
+                  - s3:*
+                Resource: '*'
+    
+  WebAppServerInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Roles: 
+        - !Ref WebAppServerRole

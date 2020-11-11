@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Bucket to store code artefacts
+
+Resources:
+
+  WebAppCodeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-artifacts
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+
+  WebAppCodeSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /base-infra/buckets/webappcode
+      Type: String
+      Value: !Ref WebAppCodeBucket
+      Description: Bucket name where web app code is stored

@@ -1,0 +1,38 @@
+{
+    "variables" : {
+        "region" : "ap-southeast-2",
+        "aws_profile": "default",
+        "golden_ami_name": "simple_golden_ami",
+        "base_ami_id": "ami-0f96495a064477ffb",
+        "vpc_id": "",
+        "subnet_id": ""
+    },
+    "builders" : [
+        {
+            "type" : "amazon-ebs",
+            "profile" : "{{user `aws_profile`}}",
+            "region" : "{{user `region`}}",
+            "instance_type" : "t3.micro",
+            "source_ami" : "{{user `base_ami_id`}}",
+            "ssh_username" : "ec2-user",
+            "ami_name" : "{{user `golden_ami_name`}}",
+            "vpc_id": "{{user `vpc_id`}}",
+            "subnet_id": "{{user `subnet_id`}}",
+            "force_deregister": "true",
+            "force_delete_snapshot": "true",
+            "ami_description" : "Simple Golden AMI",
+            "run_tags" : {
+                "Name" : "packer-golden-ami-builder",
+                "Tool" : "Packer",
+                "Author" : "rairaman"
+            }
+        }
+    ],
+    "provisioners" : [
+        {
+            "type" : "shell",
+            "execute_command": "sudo sh -c '{{ .Vars }} {{ .Path }}'",
+            "script" : "./scripts/setup_golden_ami.sh"
+        }
+    ]
+}
